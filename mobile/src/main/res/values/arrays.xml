@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="weekly_quick_actions">
+
+        <item>jimmmy 1</item>
+        <item>jimmmy 2</item>
+        <item>jimmmy 3</item>
+
+    </string-array>
+</resources>

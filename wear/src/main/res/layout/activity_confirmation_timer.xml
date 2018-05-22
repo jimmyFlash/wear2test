@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<android.support.wear.widget.BoxInsetLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_height="match_parent"
+    android:layout_width="match_parent"
+    android:padding="@dimen/activity_all_padding">
+
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_box="all">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Are you sure this is right?"
+            android:textSize="18sp"
+            android:gravity="center"
+            android:layout_centerInParent="true"
+            android:layout_marginBottom="5dp"/>
+
+
+        <android.support.wear.widget.CircularProgressLayout
+            android:id="@+id/circular_progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            app:backgroundColor="@color/blue"
+            app:colorSchemeColors="@color/circular_button"
+            app:strokeWidth="4dp"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentStart="true">
+
+            <ImageView
+                android:id="@+id/image_view"
+                android:src="@android:drawable/ic_delete"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                />
+
+        </android.support.wear.widget.CircularProgressLayout>
+
+    </RelativeLayout>
+
+</android.support.wear.widget.BoxInsetLayout>
+
+
+

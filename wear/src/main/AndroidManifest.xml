@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.jamalsafwat.wear2test">
+
+    <uses-feature android:name="android.hardware.type.watch" />
+
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.DeviceDefault">
+
+        <!-- define a standalone wearable app -->
+        <meta-data
+            android:name="com.google.android.wearable.standalone"
+            android:value="true" />
+
+        <!-- wearable shared library -->
+        <uses-library
+            android:name="com.google.android.wearable"
+            android:required="false" />
+
+        <activity
+            android:name=".MainActivity"
+            android:label="@string/app_name"
+            android:launchMode="singleInstance">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".SecondActivity"
+            android:label="@string/title_activity_second" />
+        <activity
+            android:name=".ConfirmationActivity"
+            android:label="@string/title_activity_confirmation" />
+        <activity
+            android:name=".ConfirmationTimerActivity"
+            android:label="@string/title_activity_confirmation_timer" />
+        <activity android:name="android.support.wearable.activity.ConfirmationActivity" />
+        <activity
+            android:name=".DrawerActivity"
+            android:label="@string/title_activity_drawer" />
+
+        <service
+            android:name=".services.MyJobService"
+            android:enabled="true"
+            android:exported="true" />
+
+        <activity
+            android:name=".DataSyncActivity"
+            android:label="@string/title_activity_data_sync" />
+        <activity
+            android:name=".MessaginApiActivity"
+            android:label="@string/title_activity_messagin_api">
+
+        </activity>
+        <activity
+            android:name=".ReceiveMessageFromPhone"
+            android:label="@string/title_activity_receive_message_from_phone">
+
+        </activity>
+
+        <service
+            android:name=".services.WearListenerService"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+
+                <data
+                    android:host="*"
+                    android:pathPrefix="/message_capable_1"
+                    android:scheme="wear" />
+
+                <data
+                    android:host="*"
+                    android:pathPrefix="/message_capable_2"
+                    android:scheme="wear" />
+            </intent-filter>
+        </service>
+    </application>
+
+</manifest>

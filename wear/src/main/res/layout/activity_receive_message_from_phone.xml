@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.wear.widget.BoxInsetLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_height="match_parent"
+    android:layout_width="match_parent"
+    android:paddingBottom="@dimen/activity_main_bottom_padding">
+
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingTop="@dimen/activity_main_top_padding"
+        android:paddingRight="@dimen/activity_main_right_padding"
+        android:paddingLeft="@dimen/activity_main_left_padding"
+        app:layout_box="left|right"
+        >
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            >
+            <TextView
+                android:id="@+id/recve_text_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scrollbars="vertical"
+                android:textIsSelectable="false"
+                android:textColor="#ffcc00"
+                android:textSize="14sp"
+                android:gravity="center_horizontal"
+                android:background="@android:color/transparent"
+                android:text="kugkugiugiugiugiugiu"/>
+
+        </RelativeLayout>
+
+    </LinearLayout>
+
+</android.support.wear.widget.BoxInsetLayout>

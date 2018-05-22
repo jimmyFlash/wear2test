@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Wear2Test</string>
+    <string name="wear_contract_wear">verify_remote_example_wear_app</string>
+    <string name="wear_contract_phone">verify_remote_example_phone_app</string>
+    <string name="quick_actions_week_label">lbl</string>
+    <string name="time_entry_reply_quick_action">llbbll</string>
+    <string name="reply_label">reply label</string>
+    <string name="reply_name">Smart reply</string>
+    <string name="title_activity_send_message_to_wear">SendMessageToWear</string>
+    <string name="action_settings">Settings</string>
+</resources>

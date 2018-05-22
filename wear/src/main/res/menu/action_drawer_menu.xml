@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+
+    <item android:id="@+id/menu_planet_name"
+        android:icon="@drawable/ic_info_outline_black_18dp"
+        android:title="Planet Name"/>
+    <item android:id="@+id/menu_number_of_moons"
+        android:icon="@drawable/ic_info_outline_black_18dp"
+        android:title="Number of Moons" />
+    <item android:id="@+id/menu_volume"
+        android:icon="@drawable/ic_info_outline_black_18dp"
+        android:title="Volume" />
+    <item android:id="@+id/menu_surface_area"
+        android:icon="@drawable/ic_info_outline_black_18dp"
+        android:title="Surface Area" />
+</menu>

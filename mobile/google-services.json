@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "649642842279",
+    "project_id": "wear2project-174809"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:649642842279:android:83593a4961b2ae54",
+        "android_client_info": {
+          "package_name": "com.jamalsafwat.wear2test"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "649642842279-03bhs4jd4msu3lvslttqffijcrfti52j.apps.googleusercontent.com",
+          "client_type": 3
+        },
+        {
+          "client_id": "649642842279-n90mhvjt1kui0amnibnk6i19qn2ocn4v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.jamalsafwat.wear2test",
+            "certificate_hash": "f0655cd4b34e4117bb37f8ef94e2d5ade48501dc"
+          }
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAqXgFP18NHZ8SXEJIyU400EhnKJKIXqms"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 1
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
