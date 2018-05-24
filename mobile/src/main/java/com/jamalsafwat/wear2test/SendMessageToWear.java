@@ -19,8 +19,10 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.wearable.CapabilityApi;
+import com.google.android.gms.wearable.CapabilityClient;
 import com.google.android.gms.wearable.CapabilityInfo;
 import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.MessageClient;
 import com.google.android.gms.wearable.MessageEvent;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.Wearable;
@@ -30,8 +32,8 @@ import java.util.Set;
 
 public class SendMessageToWear extends AppCompatActivity  implements  GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
-        MessageApi.MessageListener,
-        CapabilityApi.CapabilityListener{
+        MessageClient.OnMessageReceivedListener,
+        CapabilityClient.OnCapabilityChangedListener{
 
     private static final String TAG = SendMessageToWear.class.getSimpleName();
     private static final String MESSAGE_CAPABILITY_NAME = "message_capable";
