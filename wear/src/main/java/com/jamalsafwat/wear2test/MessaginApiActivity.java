@@ -34,6 +34,7 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.wearable.CapabilityApi;
+import com.google.android.gms.wearable.CapabilityClient;
 import com.google.android.gms.wearable.CapabilityInfo;
 import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.Node;
@@ -57,7 +58,7 @@ import java.util.Set;
 public class MessaginApiActivity extends Activity implements
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
-CapabilityApi.CapabilityListener{
+        CapabilityClient.OnCapabilityChangedListener{
 
     private static final int SPEECH_REQUEST_CODE = 888;
     private static final int MULTIPLE_PERMISSIONS = 600;

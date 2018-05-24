@@ -13,6 +13,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.wearable.CapabilityApi;
 import com.google.android.gms.wearable.CapabilityInfo;
 import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.MessageClient;
 import com.google.android.gms.wearable.MessageEvent;
 import com.google.android.gms.wearable.Wearable;
 
@@ -20,7 +21,7 @@ import java.io.UnsupportedEncodingException;
 
 public class ReceiveMessageFromPhone extends WearableActivity implements  GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
-        MessageApi.MessageListener {
+        MessageClient.OnMessageReceivedListener {
 
     private static final String TAG = ReceiveMessageFromPhone.class.getSimpleName();
     private TextView mTextView;
