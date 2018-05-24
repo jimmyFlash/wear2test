@@ -36,9 +36,11 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.wearable.CapabilityApi;
+import com.google.android.gms.wearable.CapabilityClient;
 import com.google.android.gms.wearable.CapabilityInfo;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.MessageClient;
 import com.google.android.gms.wearable.MessageEvent;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.NodeApi;
@@ -64,8 +66,8 @@ import java.util.Set;
  */
 public class MainActivity extends AppCompatActivity implements  GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
-        MessageApi.MessageListener,
-        CapabilityApi.CapabilityListener
+        MessageClient.OnMessageReceivedListener,
+        CapabilityClient.OnCapabilityChangedListener
 {
 
     private static final String TAG = "MainMobileActivity";
