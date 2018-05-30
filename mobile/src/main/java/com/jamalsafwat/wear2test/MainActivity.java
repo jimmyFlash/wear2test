@@ -1,6 +1,7 @@
 package com.jamalsafwat.wear2test;
 
 import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
@@ -17,35 +18,23 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.ResultReceiver;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.app.RemoteInput;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.support.wearable.notifications.BridgingConfig;
-import android.support.wearable.notifications.BridgingManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.PendingResult;
-import com.google.android.gms.common.api.ResultCallback;
-import com.google.android.gms.wearable.CapabilityApi;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.android.gms.wearable.CapabilityClient;
 import com.google.android.gms.wearable.CapabilityInfo;
-import com.google.android.gms.wearable.DataApi;
-import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.MessageClient;
 import com.google.android.gms.wearable.MessageEvent;
 import com.google.android.gms.wearable.Node;
-import com.google.android.gms.wearable.NodeApi;
-import com.google.android.gms.wearable.PutDataMapRequest;
-import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
 import com.google.android.wearable.intent.RemoteIntent;
 
@@ -64,11 +53,12 @@ import java.util.Set;
  * Checks if the sample's Wear app is installed on remote Wear device(s). If it is not, allows the
  * user to open the app listing on the Wear devices' Play Store.
  */
-public class MainActivity extends AppCompatActivity implements  GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener,
+public class MainActivity extends AppCompatActivity implements
         MessageClient.OnMessageReceivedListener,
-        CapabilityClient.OnCapabilityChangedListener
-{
+        CapabilityClient.OnCapabilityChangedListener {
+
+    final String channelID = "channel_1";
+    int imp = NotificationManager.IMPORTANCE_HIGH;
 
     private static final String TAG = "MainMobileActivity";
     private static final String EXTRA_EVENT_ID = "eventID";
@@ -150,7 +140,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
     private Set<Node> mWearNodesWithApp;
     private List<Node> mAllConnectedNodes;
 
-    private GoogleApiClient mGoogleApiClient;
+//    private GoogleApiClient mGoogleApiClient;
 
     private MediaPlayer mediaPlayer = new MediaPlayer();
 
@@ -159,7 +149,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
     private static final int RECORDING_RATE = 8000; // can go up to 44K, if needed
     private static final int CHANNELS_OUT = AudioFormat.CHANNEL_OUT_MONO;
     private static final int FORMAT = AudioFormat.ENCODING_PCM_16BIT;
-    private AsyncTask<Void, Void, Void> mPlayingAsyncTask;
+    private static AsyncTask<Void, Void, Void> mPlayingAsyncTask;
     private AudioManager mAudioManager;
     private  String mOutputFileName;
     private File outputDir;
@@ -186,12 +176,6 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                 }
             });
 
-            mGoogleApiClient = new GoogleApiClient.Builder(this)
-                    .addApi(Wearable.API)
-                    .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this)
-                    .build();
-
             mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
             outputDir = getFilesDir(); // context being the Activity pointer
@@ -203,18 +187,14 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
         }
     }
 
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
 
-        Log.d(TAG, "onConnected()");
 
-        // Set up listeners for capability changes (install/uninstall of remote app).
-        Wearable.CapabilityApi.addCapabilityListener(
-                mGoogleApiClient,
-                this,
-                CAPABILITY_WEAR_APP);
 
-        Wearable.MessageApi.addListener( mGoogleApiClient, this );
+    private void connected (){
+        Wearable.getCapabilityClient(this)
+                .addListener(this, Uri.parse("wear://"), CapabilityClient.FILTER_REACHABLE);
+
+        Wearable.getMessageClient(this).addListener(  this );
 
         // Initial request for devices with our capability, aka, our Wear app installed.
         findWearDevicesWithApp();
@@ -224,18 +204,14 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
         // that isn't deprecated, we simply update the full list when the Google API Client is
         // connected and when capability changes come through in the onCapabilityChanged() method.
         findAllWearDevices();
+    }
+
+
+    private void disconnected (){
 
     }
 
-    @Override
-    public void onConnectionSuspended(int i) {
-        Log.d(TAG, "onConnectionSuspended(): connection to location client suspended: " + i);
-    }
 
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-        Log.e(TAG, "onConnectionFailed(): " + connectionResult);
-    }
 
     @Override
     public void onCapabilityChanged(CapabilityInfo capabilityInfo) {
@@ -256,26 +232,18 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
         Log.d(TAG, "onPause()");
         super.onPause();
 
-        if ((mGoogleApiClient != null) && mGoogleApiClient.isConnected()) {
+        Wearable.getCapabilityClient(this).removeListener(this);
 
-            Wearable.CapabilityApi.removeCapabilityListener(
-                    mGoogleApiClient,
-                    this,
-                    CAPABILITY_WEAR_APP);
+        Wearable.getMessageClient(this).removeListener(this );
 
-            Wearable.MessageApi.removeListener( mGoogleApiClient, this );
-
-            mGoogleApiClient.disconnect();
-        }
     }
 
     @Override
     protected void onResume() {
         Log.d(TAG, "onResume()");
         super.onResume();
-        if (mGoogleApiClient != null) {
-            mGoogleApiClient.connect();
-        }
+        connected ();
+
     }
 
     private void findWearDevicesWithApp() {
@@ -283,44 +251,49 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
 
         // You can filter this by FILTER_REACHABLE if you only want to open Nodes (Wear Devices)
         // directly connect to your phone.
-        PendingResult<CapabilityApi.GetCapabilityResult> pendingResult =
-                Wearable.CapabilityApi.getCapability(
-                        mGoogleApiClient,
-                        CAPABILITY_WEAR_APP,
-                        CapabilityApi.FILTER_ALL);
 
-        pendingResult.setResultCallback(new ResultCallback<CapabilityApi.GetCapabilityResult>() {
+
+        Task<CapabilityInfo> pendingResult =   Wearable.getCapabilityClient(this)
+                .getCapability(CAPABILITY_WEAR_APP,
+                CapabilityClient.FILTER_REACHABLE);
+
+        pendingResult.addOnCompleteListener(new OnCompleteListener<CapabilityInfo>() {
             @Override
-            public void onResult(@NonNull CapabilityApi.GetCapabilityResult getCapabilityResult) {
-                Log.d(TAG, "onResult(): " + getCapabilityResult);
+            public void onComplete(@NonNull Task<CapabilityInfo> task) {
 
-                if (getCapabilityResult.getStatus().isSuccess()) {
-                    CapabilityInfo capabilityInfo = getCapabilityResult.getCapability();
+                if(task.isSuccessful()){
+
+                    CapabilityInfo capabilityInfo = task.getResult();
                     mWearNodesWithApp = capabilityInfo.getNodes();
                     verifyNodeAndUpdateUI();
 
-                } else {
-                    Log.d(TAG, "Failed CapabilityApi: " + getCapabilityResult.getStatus());
+                }else{
+                    Log.d(TAG, "Failed CapabilityApi: " + task.getResult());
                 }
             }
         });
+
     }
 
     private void findAllWearDevices() {
         Log.d(TAG, "findAllWearDevices()");
 
-        PendingResult<NodeApi.GetConnectedNodesResult> pendingResult = Wearable.NodeApi.getConnectedNodes(mGoogleApiClient);
+        Task<List<Node>> pendingResult = Wearable.getNodeClient(this ).getConnectedNodes();
 
-        pendingResult.setResultCallback(new ResultCallback<NodeApi.GetConnectedNodesResult>() {
+        pendingResult.addOnCompleteListener(new OnCompleteListener<List<Node>>() {
             @Override
-            public void onResult(@NonNull NodeApi.GetConnectedNodesResult getConnectedNodesResult) {
+            public void onComplete(@NonNull Task<List<Node>> task) {
 
-                if (getConnectedNodesResult.getStatus().isSuccess()) {
-                    mAllConnectedNodes = getConnectedNodesResult.getNodes();
+                if (task.isSuccessful()) {
+
+                    mAllConnectedNodes = task.getResult();
                     verifyNodeAndUpdateUI();
 
                 } else {
-                    Log.d(TAG, "Failed CapabilityApi: " + getConnectedNodesResult.getStatus());
+                    // Task failed with an exception
+                    Exception exception = task.getException();
+
+                    Log.e(TAG, "Failed CapabilityApi: " + task.getException());
                 }
             }
         });
@@ -388,7 +361,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                 Bitmap bitmap_smile = BitmapFactory.decodeResource(this.getResources(), R.drawable.smile);
 
                 Notification secondPageNotification =
-                        new NotificationCompat.Builder(this)
+                        new NotificationCompat.Builder(this, channelID)
                                 .setContentTitle("Hours this week")
                                 .setContentText("I am the game i want to play \n motorhead ")
                                 .build();
@@ -441,7 +414,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
 
 
                 NotificationCompat.Builder  notificationBuilder =
-                        new NotificationCompat.Builder(this)
+                        new NotificationCompat.Builder(this, channelID)
                                 // sample 1:  with big imageor big text  , action button and bg color set
                               /*  .setSmallIcon(android.R.drawable.ic_dialog_alert)
 //                                .setLargeIcon(bitmap_image)
