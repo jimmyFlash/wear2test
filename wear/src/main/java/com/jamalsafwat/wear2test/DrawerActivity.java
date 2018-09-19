@@ -5,12 +5,12 @@ import android.app.FragmentManager;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.support.wearable.activity.WearableActivity;
-import android.support.wearable.view.drawer.WearableActionDrawer;
-import android.support.wearable.view.drawer.WearableDrawerLayout;
-import android.support.wearable.view.drawer.WearableNavigationDrawer;
+import android.support.v4.app.FragmentActivity;
+import android.support.wear.ambient.AmbientModeSupport;
+import android.support.wear.widget.drawer.WearableActionDrawerView;
+import android.support.wear.widget.drawer.WearableDrawerLayout;
+import android.support.wear.widget.drawer.WearableNavigationDrawerView;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -24,12 +24,16 @@ import com.jamalsafwat.wear2test.pojo.Planet;
 
 import java.util.ArrayList;
 
-public class DrawerActivity extends WearableActivity implements WearableActionDrawer.OnMenuItemClickListener {
+public class DrawerActivity extends FragmentActivity implements
+        AmbientModeSupport.AmbientCallbackProvider,
+        MenuItem.OnMenuItemClickListener,
+        WearableNavigationDrawerView.OnItemSelectedListener{
 
-    private TextView mTextView;
-    private WearableDrawerLayout mWearableDrawerLayout;
-    private WearableNavigationDrawer mWearableNavigationDrawer;
-    private WearableActionDrawer mWearableActionDrawer;
+
+//    private WearableDrawerLayout mWearableDrawerLayout;
+
+    private WearableNavigationDrawerView mWearableNavigationDrawer;
+    private WearableActionDrawerView mWearableActionDrawer;
 
     private ArrayList<Planet> mSolarSystem;
     private int mSelectedPlanet;
@@ -41,16 +45,21 @@ public class DrawerActivity extends WearableActivity implements WearableActionDr
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_drawer);
 
-        setAmbientEnabled();
+
+        // Enables Ambient mode.
+        AmbientModeSupport.attach(this);
+
 
         mSolarSystem = initializeSolarSystem();
         mSelectedPlanet = 0;
+
 
         // Initialize content to first planet.
         mPlanetFragment = new PlanetFragment();
         Bundle args = new Bundle();
 
-        int imageId = getResources().getIdentifier(mSolarSystem.get(mSelectedPlanet).getImage(), "drawable", getPackageName());
+        int imageId = getResources().getIdentifier(mSolarSystem.get(mSelectedPlanet).getImage(),
+                "drawable", getPackageName());
 
 
         args.putInt(PlanetFragment.ARG_PLANET_IMAGE_ID, imageId);
@@ -59,28 +68,29 @@ public class DrawerActivity extends WearableActivity implements WearableActionDr
         fragmentManager.beginTransaction().replace(R.id.content_frame, mPlanetFragment).commit();
 
         // Main Wearable Drawer Layout that wraps all content
-        mWearableDrawerLayout = (WearableDrawerLayout) findViewById(R.id.drawer_layout);
+//        mWearableDrawerLayout = (WearableDrawerLayout) findViewById(R.id.drawer_layout);
 
         // Top Navigation Drawer
-        mWearableNavigationDrawer = (WearableNavigationDrawer) findViewById(R.id.top_navigation_drawer);
+        mWearableNavigationDrawer = (WearableNavigationDrawerView ) findViewById(R.id.top_navigation_drawer);
         mWearableNavigationDrawer.setAdapter(new NavigationAdapter(this));
-
+       // Peeks navigation drawer on the top.
+        mWearableNavigationDrawer.getController().peekDrawer();
+        mWearableNavigationDrawer.addOnItemSelectedListener(this);
         // Bottom Action Drawer
         mWearableActionDrawer =
-                (WearableActionDrawer) findViewById(R.id.bottom_action_drawer);
-
+                (WearableActionDrawerView) findViewById(R.id.bottom_action_drawer);
         mWearableActionDrawer.setOnMenuItemClickListener(this);
+        // Peeks action drawer on the bottom.
+        mWearableActionDrawer.getController().peekDrawer();
 
         // Temporarily peeks the navigation and action drawers to ensure the user is aware of them.
-        ViewTreeObserver observer = mWearableDrawerLayout.getViewTreeObserver();
+       /* ViewTreeObserver observer = mWearableDrawerLayout.getViewTreeObserver();
         observer.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
                 mWearableDrawerLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                mWearableDrawerLayout.peekDrawer(Gravity.TOP);
-                mWearableDrawerLayout.peekDrawer(Gravity.BOTTOM);
             }
-        });
+        });*/
 
         /* Action Drawer Tip: If you only have a single action for your Action Drawer, you can use a
          * (custom) View to peek on top of the content by calling
@@ -89,6 +99,7 @@ public class DrawerActivity extends WearableActivity implements WearableActionDr
          */
 
     }
+
 
 
     @Override
@@ -112,7 +123,8 @@ public class DrawerActivity extends WearableActivity implements WearableActionDr
                 break;
         }
 
-        mWearableDrawerLayout.closeDrawer(mWearableActionDrawer);
+
+        mWearableActionDrawer.getController().closeDrawer();
 
         if (toastMessage.length() > 0) {
             Toast toast = Toast.makeText(
@@ -150,6 +162,24 @@ public class DrawerActivity extends WearableActivity implements WearableActionDr
         return solarSystem;
     }
 
+    @Override
+    public AmbientModeSupport.AmbientCallback getAmbientCallback() {
+        return null;
+    }
+
+    @Override
+    public void onItemSelected(int pos) {
+
+        Log.d("PPPPPPPPPP", "WearableNavigationDrawerAdapter.onItemSelected(): " + pos);
+        mSelectedPlanet = pos;
+
+        String selectedPlanetImage = mSolarSystem.get(mSelectedPlanet).getImage();
+        int drawableId =
+                getResources().getIdentifier(selectedPlanetImage, "drawable", getPackageName());
+        mPlanetFragment.updatePlanet(drawableId);
+
+    }
+
 
     /**
      * Fragment that appears in the "content_frame", just shows the currently selected planet.
@@ -182,7 +212,9 @@ public class DrawerActivity extends WearableActivity implements WearableActionDr
     }
 
 
-    private final class NavigationAdapter extends WearableNavigationDrawer.WearableNavigationDrawerAdapter {
+    private final class NavigationAdapter extends
+             WearableNavigationDrawerView.WearableNavigationDrawerAdapter
+    {
 
         private final Context mContext;
 
@@ -193,17 +225,6 @@ public class DrawerActivity extends WearableActivity implements WearableActionDr
         @Override
         public int getCount() {
             return mSolarSystem.size();
-        }
-
-        @Override
-        public void onItemSelected(int position) {
-            Log.d("PPPPPPPPPP", "WearableNavigationDrawerAdapter.onItemSelected(): " + position);
-            mSelectedPlanet = position;
-
-            String selectedPlanetImage = mSolarSystem.get(mSelectedPlanet).getImage();
-            int drawableId =
-                    getResources().getIdentifier(selectedPlanetImage, "drawable", getPackageName());
-            mPlanetFragment.updatePlanet(drawableId);
         }
 
         @Override
@@ -218,6 +239,8 @@ public class DrawerActivity extends WearableActivity implements WearableActionDr
             int drawableNavigationIconId =
                     getResources().getIdentifier(navigationIcon, "drawable", getPackageName());
 
+
+            Log.e("kkkkkkkk", mContext.getDrawable(drawableNavigationIconId).toString() + "" );
             return mContext.getDrawable(drawableNavigationIconId);
         }
     }
