@@ -11,6 +11,7 @@ import android.widget.Toast;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.wearable.CapabilityApi;
+import com.google.android.gms.wearable.CapabilityClient;
 import com.google.android.gms.wearable.CapabilityInfo;
 import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.MessageClient;
@@ -19,16 +20,12 @@ import com.google.android.gms.wearable.Wearable;
 
 import java.io.UnsupportedEncodingException;
 
-public class ReceiveMessageFromPhone extends WearableActivity implements  GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener,
-        MessageClient.OnMessageReceivedListener {
+public class ReceiveMessageFromPhone extends WearableActivity implements
+        MessageClient.OnMessageReceivedListener  {
 
     private static final String TAG = ReceiveMessageFromPhone.class.getSimpleName();
     private TextView mTextView;
-    private GoogleApiClient mGoogleApiClient;
 
-
-    private static final String MESSAGE_CAPABILITY_NAME = "message_capable";
     private static final String MESSAGE_CAPABILITY_PATH_1 = "/message_capable_1";
     private static final String MESSAGE_CAPABILITY_PATH_2 = "/message_capable_2";
 
@@ -37,30 +34,6 @@ public class ReceiveMessageFromPhone extends WearableActivity implements  Google
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_receive_message_from_phone);
         mTextView = (TextView) findViewById(R.id.recve_text_view);
-
-
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addApi(Wearable.API)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .build();
-
-    }
-
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
-
-        Wearable.MessageApi.addListener( mGoogleApiClient, this );
-
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {
-
-    }
-
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
 
     }
 
@@ -79,29 +52,28 @@ public class ReceiveMessageFromPhone extends WearableActivity implements  Google
                         text,  Toast.LENGTH_SHORT);
                 toast.show();
 
+                mTextView.setText(text);
+
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
 
         }
 
-
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if ((mGoogleApiClient != null) && mGoogleApiClient.isConnected()) {
-            Wearable.MessageApi.removeListener( mGoogleApiClient, this );
-            mGoogleApiClient.disconnect();
-        }
+        Wearable.getMessageClient(ReceiveMessageFromPhone.this).removeListener(this);
+
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (mGoogleApiClient != null) {
-            mGoogleApiClient.connect();
-        }
+        Wearable.getMessageClient(ReceiveMessageFromPhone.this).addListener(this);
+
     }
+
 }

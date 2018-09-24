@@ -1,6 +1,7 @@
 package com.jamalsafwat.wear2test;
 
 
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -18,6 +19,9 @@ import android.view.View;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 import com.google.android.gms.wearable.CapabilityApi;
 import com.google.android.gms.wearable.CapabilityClient;
 import com.google.android.gms.wearable.CapabilityInfo;
@@ -29,9 +33,10 @@ import com.google.android.gms.wearable.Wearable;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
-public class SendMessageToWear extends AppCompatActivity  implements  GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener,
+public class SendMessageToWear extends AppCompatActivity  implements
+
         MessageClient.OnMessageReceivedListener,
         CapabilityClient.OnCapabilityChangedListener{
 
@@ -39,7 +44,6 @@ public class SendMessageToWear extends AppCompatActivity  implements  GoogleApiC
     private static final String MESSAGE_CAPABILITY_NAME = "message_capable";
     private static final String MESSAGE_CAPABILITY_PATH_1 = "/message_capable_1";
     private static final String MESSAGE_CAPABILITY_PATH_2 = "/message_capable_2";
-    private GoogleApiClient mGoogleApiClient;
     private String connectedNodeID;
     private FragmentManager fragmentManager;
     private FragmentTransaction fragmentTransaction;
@@ -67,58 +71,64 @@ public class SendMessageToWear extends AppCompatActivity  implements  GoogleApiC
 
             @Override
             public void sendAnotherMessageToWear(String strBytes) {
-                try {
-                    sendToConnectedNodeMsg_2(strBytes.getBytes("UTF-8"));
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                }
+
+                new SendThread(strBytes).start();
             }
         });
         fragmentTransaction.replace(R.id.fragment_container, fragment);
         fragmentTransaction.commit();
 
-      /*
-      FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
-        */
-
-        /*
-        To call the Data Layer API, create an instance of GoogleApiClient,
-        the main entry point for any of the Google Play services APIs.
-        */
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addApi(Wearable.API) // Request access only to the Wearable API
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .build();
 
     }
 
+    private void connected (){
+        Wearable.getCapabilityClient(this)
+                .addListener(this, MESSAGE_CAPABILITY_NAME);
+
+        findWearDevicesWithCapability();
+    }
+
+    private void findWearDevicesWithCapability() {
+        Log.d(TAG, "findWearDevicesWithApp()");
+
+        // You can filter this by FILTER_REACHABLE if you only want to open Nodes (Wear Devices)
+        // directly connect to your phone.
+        Task<CapabilityInfo> pendingResult =   Wearable.getCapabilityClient(this)
+                .getCapability(MESSAGE_CAPABILITY_NAME,
+                        CapabilityClient.FILTER_REACHABLE);
+
+        pendingResult.addOnCompleteListener(new OnCompleteListener<CapabilityInfo>() {
+            @Override
+            public void onComplete(@NonNull Task<CapabilityInfo> task) {
+                if(task.isSuccessful()){
+                    CapabilityInfo capabilityInfo = task.getResult();
+                    Log.e(TAG, "SUCCESSS CapabilityApi: " + task.getResult());
+
+                    updateTranscriptionCapability(task.getResult().getNodes());
+
+                }else{
+                    Log.e(TAG, "Failed CapabilityApi: " + task.getResult());
+                }
+            }
+        });
+
+    }
+
+
     @Override
     protected void onResume() {
+
         super.onResume();
-        if (mGoogleApiClient != null) {
-            Log.e(TAG, "onResume");
-            mGoogleApiClient.connect();
-        }
+        connected();
+
     }
 
     @Override
     protected void onPause() {
+
         super.onPause();
-        if ((mGoogleApiClient != null) && mGoogleApiClient.isConnected()) {
-            Log.e(TAG, "onPause");
+        Wearable.getCapabilityClient(this).removeListener(this);
 
-            Wearable.CapabilityApi.removeCapabilityListener( mGoogleApiClient, this, MESSAGE_CAPABILITY_NAME);
-
-            mGoogleApiClient.disconnect();
-        }
     }
 
     @Override
@@ -127,25 +137,12 @@ public class SendMessageToWear extends AppCompatActivity  implements  GoogleApiC
     }
 
 
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
-        new LongOperation().execute();
-        // Set up listeners for capability changes for the voice contract key.
-        Wearable.CapabilityApi.addCapabilityListener( mGoogleApiClient, this, MESSAGE_CAPABILITY_NAME);
-    }
 
-    @Override
-    public void onConnectionSuspended(int i) {
-
-    }
-
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
-    }
 
     @Override
     public void onCapabilityChanged(CapabilityInfo capabilityInfo) {
+
+        Log.e("Messaage", "   nistekta aa found you ya son of bith ");
 
     }
 
@@ -154,45 +151,11 @@ public class SendMessageToWear extends AppCompatActivity  implements  GoogleApiC
 
     }
 
-    private class LongOperation extends AsyncTask<String, Void, CapabilityApi.GetCapabilityResult> {
 
-        @Override
-        protected CapabilityApi.GetCapabilityResult doInBackground(String... params) {
-
-            CapabilityApi.GetCapabilityResult result = null;
-            try {
-                result = Wearable.CapabilityApi.getCapability(mGoogleApiClient, MESSAGE_CAPABILITY_NAME, CapabilityApi.FILTER_REACHABLE).await();
-
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return result;
-        }
-
-        @Override
-        protected void onPostExecute(CapabilityApi.GetCapabilityResult result) {
-
-            Log.e(TAG + " result-Capability", result.getCapability().getName());
-
-            updateTranscriptionCapability(result.getCapability());
-        }
-
-        @Override
-        protected void onPreExecute() {}
-
-        @Override
-        protected void onProgressUpdate(Void... values) {}
-    }
-
-    private void updateTranscriptionCapability(CapabilityInfo capabilityInfo) {
-        Set<Node> connectedNodes = capabilityInfo.getNodes();
-
-        connectedNodeID = pickBestNodeId(connectedNodes);
+    private void updateTranscriptionCapability(Set<Node> nodes) {
+        connectedNodeID = pickBestNodeId(nodes);
 
         Log.e(TAG + " transcriptionNodeId", connectedNodeID  + "");
-
-
     }
 
     private String pickBestNodeId(Set<Node> nodes) {
@@ -207,21 +170,21 @@ public class SendMessageToWear extends AppCompatActivity  implements  GoogleApiC
         return bestNodeId;
     }
 
-    private void sendToConnectedNodeMsg_1(byte[] voiceData) {
+    private void sendToConnectedNodeMsg_1(byte[] msgByteData) {
         if (connectedNodeID != null) {
 
-            Wearable.MessageApi.sendMessage(mGoogleApiClient, connectedNodeID, MESSAGE_CAPABILITY_PATH_1, voiceData)
-                    .setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
-                        @Override
-                        public void onResult(@NonNull MessageApi.SendMessageResult sendMessageResult) {
-                            if (!sendMessageResult.getStatus().isSuccess()) {
-                                // Failed to send message
-                                Log.e(TAG + " Failed to send", sendMessageResult.getStatus().getStatusMessage());
-                            }else{
-                                Log.e(TAG + " Sent", sendMessageResult.getStatus().getStatusMessage());
-                            }
-                        }
-                    });
+            Task<Integer> sendMessageTask =
+                    Wearable.getMessageClient(SendMessageToWear.this).sendMessage(connectedNodeID,
+                            MESSAGE_CAPABILITY_PATH_1,
+                            msgByteData);
+
+          sendMessageTask.addOnCompleteListener(new OnCompleteListener<Integer>() {
+              @Override
+              public void onComplete(@NonNull Task<Integer> task) {
+
+                  Log.e(TAG, "SendThread: message send to " + connectedNodeID);
+              }
+          });
         } else {
             // Unable to retrieve node with transcription capability
             Log.e(TAG + " No node", "Unable to retrieve node");
@@ -231,21 +194,63 @@ public class SendMessageToWear extends AppCompatActivity  implements  GoogleApiC
     private void sendToConnectedNodeMsg_2(byte[] voiceData) {
         if (connectedNodeID != null) {
 
-            Wearable.MessageApi.sendMessage(mGoogleApiClient, connectedNodeID, MESSAGE_CAPABILITY_PATH_2, voiceData)
-                    .setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
-                        @Override
-                        public void onResult(@NonNull MessageApi.SendMessageResult sendMessageResult) {
-                            if (!sendMessageResult.getStatus().isSuccess()) {
-                                // Failed to send message
-                                Log.e(TAG + " Failed to send", sendMessageResult.getStatus().getStatusMessage());
-                            }else{
-                                Log.e(TAG + " Sent", sendMessageResult.getStatus().getStatusMessage());
-                            }
-                        }
-                    });
+            Task<Integer> sendMessageTask =
+                    Wearable.getMessageClient(SendMessageToWear.this).sendMessage(connectedNodeID,
+                            MESSAGE_CAPABILITY_PATH_2,
+                            voiceData);
+
+            try {
+                // Block on a task and get the result synchronously (because this is on a background
+                // thread).
+                Integer result = Tasks.await(sendMessageTask);
+                Log.e(TAG, "SendThread: message send to " + connectedNodeID);
+
+            } catch (ExecutionException exception) {
+                Log.e(TAG, "Task failed: " + exception);
+
+            } catch (InterruptedException exception) {
+                Log.e(TAG, "Interrupt occurred: " + exception);
+            }
+
         } else {
             // Unable to retrieve node with transcription capability
             Log.e(TAG + " No node", "Unable to retrieve node");
+        }
+    }
+
+
+    //This actually sends the message to the wearable device.
+    class SendThread extends Thread {
+        String msg;
+
+        //constructor
+        SendThread(String p) {
+            msg = p;
+        }
+
+        //sends the message via the thread.  this will send to all wearables connected, but
+        //since there is (should only?) be one, so no problem.
+        public void run() {
+            //first get all the nodes, ie connected wearable devices.
+
+            Task<Integer> sendMessageTask =
+                    Wearable.getMessageClient(SendMessageToWear.this).sendMessage(connectedNodeID,
+                            MESSAGE_CAPABILITY_PATH_2,
+                            msg.getBytes());
+
+            try {
+                // Block on a task and get the result synchronously (because this is on a background
+                // thread).
+                Integer result = Tasks.await(sendMessageTask);
+                Log.e(TAG, "SendThread: message send to " + connectedNodeID);
+
+            } catch (ExecutionException exception) {
+                Log.e(TAG, "Task failed: " + exception);
+
+            } catch (InterruptedException exception) {
+                Log.e(TAG, "Interrupt occurred: " + exception);
+            }
+
         }
     }
 }
