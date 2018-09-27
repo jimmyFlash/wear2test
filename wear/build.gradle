@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 27
-    buildToolsVersion "27.0.3"
+    buildToolsVersion '28.0.2'
     defaultConfig {
         applicationId "com.jamalsafwat.wear2test"
         minSdkVersion 23
@@ -12,9 +12,15 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+    }
+
+    //disable GoogleAppIndexingWarning. If there is no Deep Link in the application
+    lintOptions {
+        disable 'GoogleAppIndexingWarning'
+        baseline file("lint-baseline.xml") // your choice of filename/path here
     }
 }
 
