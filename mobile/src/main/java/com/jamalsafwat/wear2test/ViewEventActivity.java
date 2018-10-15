@@ -23,6 +23,10 @@ import android.widget.Toast;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 import com.google.android.gms.wearable.Asset;
 import com.google.android.gms.wearable.CapabilityApi;
 import com.google.android.gms.wearable.CapabilityClient;
@@ -34,6 +38,7 @@ import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.DataItem;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
@@ -41,14 +46,14 @@ import com.google.android.gms.wearable.Wearable;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static com.jamalsafwat.wear2test.MainActivity.EXTRA_VOICE_REPLY;
 
 public class ViewEventActivity extends AppCompatActivity implements
         DataClient.OnDataChangedListener,
-        GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener,
         CapabilityClient.OnCapabilityChangedListener{
 
     TextView tv;
@@ -61,15 +66,15 @@ public class ViewEventActivity extends AppCompatActivity implements
     float savedY = 0;
 
     private static final long TIMEOUT_MS = 6000;
+    private static final String TAG = ViewEventActivity.class.getSimpleName();
 
-
-    private GoogleApiClient mGoogleApiClient;
 
     LinearLayoutCompat llBottomSheet;
     private FloatingActionButton fab2;
 
     private Asset profileAsset;
     private ImageView sendDataImg;
+    private Task<List<Node>> nodeListTask;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -118,7 +123,6 @@ public class ViewEventActivity extends AppCompatActivity implements
                     fab2.animate().scaleX(1).scaleY(1).setDuration(300).start();
                 }
 */
-
             }
 
             @Override
@@ -138,7 +142,6 @@ public class ViewEventActivity extends AppCompatActivity implements
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
                 increaseCounter();
             }
         });
@@ -146,19 +149,11 @@ public class ViewEventActivity extends AppCompatActivity implements
         fab2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
                 Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.uranus);
-//                putDataRequest( bitmap);
                 putDataMapRequest(bitmap);
 
             }
         });
-
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addApi(Wearable.API)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .build();
 
         getMessageText(getIntent());
     }
@@ -174,8 +169,7 @@ public class ViewEventActivity extends AppCompatActivity implements
         Bundle remoteInput = RemoteInput.getResultsFromIntent(intent);
         if (remoteInput != null) {
             Log.e("[[[[[[[[[[[", remoteInput.getCharSequence(EXTRA_VOICE_REPLY).toString());
-
-            tv.setText("Your Response : " + remoteInput.getCharSequence(EXTRA_VOICE_REPLY).toString());
+            tv.setText(String.format("Your Response : %s", remoteInput.getCharSequence(EXTRA_VOICE_REPLY).toString()));
             return remoteInput.getCharSequence(EXTRA_VOICE_REPLY);
         }
         return null;
@@ -200,36 +194,20 @@ public class ViewEventActivity extends AppCompatActivity implements
         PutDataRequest putDataReq = putDataMapReq.asPutDataRequest();
 
         //Call DataApi.putDataItem() to request the system to create the data item.
-        PendingResult<DataApi.DataItemResult> pendingResult = Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq);
+        Task<DataItem> pendingResult = Wearable.getDataClient(this).putDataItem(putDataReq);
+
+
+
 
         Toast.makeText(this, "phone: updated counter to: " + count, Toast.LENGTH_LONG).show();
-    }
-
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
-
-       Wearable.DataApi.addListener(mGoogleApiClient, this);
-
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {
-
-    }
-
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
     }
 
 
     @Override
     protected void onResume() {
+        connected();
         super.onResume();
 
-        if (mGoogleApiClient != null) {
-            mGoogleApiClient.connect();
-        }
     }
 
 
@@ -241,11 +219,8 @@ public class ViewEventActivity extends AppCompatActivity implements
 
     @Override
     protected void onPause() {
+        Wearable.getDataClient(this).removeListener(this);
         super.onPause();
-
-        if ((mGoogleApiClient != null) && mGoogleApiClient.isConnected()) {
-            mGoogleApiClient.disconnect();
-        }
     }
 
 
@@ -309,7 +284,7 @@ public class ViewEventActivity extends AppCompatActivity implements
         Asset asset = createAssetFromBitmap(bitmap);
         PutDataRequest request = PutDataRequest.create("/image");
         request.putAsset(IMAGE_KEY, asset);
-        Wearable.DataApi.putDataItem(mGoogleApiClient, request);
+        Wearable.getDataClient(this).putDataItem(request);
     }
 
     private void putDataMapRequest(Bitmap bitmap){
@@ -322,7 +297,8 @@ public class ViewEventActivity extends AppCompatActivity implements
         dataMap.getDataMap().putLong("timestamp", System.currentTimeMillis());
 
         PutDataRequest request = dataMap.asPutDataRequest();
-        PendingResult<DataApi.DataItemResult> pendingResult = Wearable.DataApi.putDataItem(mGoogleApiClient, request);
+
+        Task<DataItem> pendingResult = Wearable.getDataClient(this).putDataItem(request);
 
 
     }
@@ -332,20 +308,29 @@ public class ViewEventActivity extends AppCompatActivity implements
         if (asset == null) {
             throw new IllegalArgumentException("Asset must be non-null");
         }
-        ConnectionResult result = mGoogleApiClient.blockingConnect(TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        if (!result.isSuccess()) {
-            return null;
-        }
-        // convert asset into a file descriptor and block until it's ready
-        InputStream assetInputStream = Wearable.DataApi.getFdForAsset(mGoogleApiClient, asset).await().getInputStream();
-//        mGoogleApiClient.disconnect();
 
-        if (assetInputStream == null) {
-            Log.w("error", "Requested an unknown Asset.");
-            return null;
+        // convert asset into a file descriptor and block until it's ready
+        InputStream assetInputStream  = null;
+
+        Task<DataClient.GetFdForAssetResponse> dataC = Wearable.getDataClient(this).getFdForAsset(asset);
+
+        try {
+            // Block on a task and get the result synchronously (because this is on a background
+            // thread).
+            DataClient.GetFdForAssetResponse nodes = Tasks.await(dataC);
+
+            InputStream inStrm = nodes.getInputStream();
+
+            return BitmapFactory.decodeStream(inStrm);
+
+        } catch (ExecutionException exception) {
+            Log.e(TAG, "Task failed: " + exception);
+        } catch (InterruptedException exception) {
+            Log.e(TAG, "Interrupt occurred: " + exception);
         }
+
         // decode the stream into a bitmap
-        return BitmapFactory.decodeStream(assetInputStream);
+        return null;
     }
 
 
@@ -377,6 +362,34 @@ public class ViewEventActivity extends AppCompatActivity implements
 
         @Override
         protected void onProgressUpdate(Void... values) {}
+    }
+
+    private void connected (){
+        //first get all the nodes, ie connected wearable devices.
+        nodeListTask =
+                Wearable.getNodeClient(getApplicationContext()).getConnectedNodes();
+
+        nodeListTask.addOnCompleteListener(new OnCompleteListener<List<Node>>() {
+            @Override
+            public void onComplete(@NonNull Task<List<Node>> task) {
+
+                List<Node> nodes = task.getResult();
+                for (Node node : nodes) {
+                    Log.e(TAG, "SendThread: message send to " + node.getDisplayName());
+                }
+            }
+        });
+
+        nodeListTask.addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+
+                Log.e(TAG, "FFFFFFFFFFFFFail " + e.getLocalizedMessage());
+            }
+        });
+
+        Wearable.getDataClient(this).addListener(this);
+
     }
 
 

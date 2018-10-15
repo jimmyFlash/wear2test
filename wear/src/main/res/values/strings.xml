@@ -129,4 +129,5 @@
     <string name="title_activity_data_sync">DataSyncActivity</string>
     <string name="title_activity_messagin_api">MessaginApiActivity</string>
     <string name="title_activity_receive_message_from_phone">ReceiveMessageFromPhone</string>
+    <string name="message_cnt">message updated from phone count now is : %d</string>
 </resources>
