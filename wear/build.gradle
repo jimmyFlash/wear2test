@@ -1,20 +1,26 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 26
-    buildToolsVersion "27.0.3"
+    compileSdkVersion 27
+    buildToolsVersion '28.0.3'
     defaultConfig {
         applicationId "com.jamalsafwat.wear2test"
         minSdkVersion 23
-        targetSdkVersion 26
+        targetSdkVersion 27
         versionCode 1
         versionName "1.0"
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+    }
+
+    //disable GoogleAppIndexingWarning. If there is no Deep Link in the application
+    lintOptions {
+        disable 'GoogleAppIndexingWarning'
+        baseline file("lint-baseline.xml") // your choice of filename/path here
     }
 }
 
@@ -25,13 +31,18 @@ dependencies {
     implementation 'com.google.android.support:wearable:2.3.0'
     compileOnly 'com.google.android.wearable:wearable:2.3.0'
     implementation 'com.google.android.gms:play-services-wearable:15.0.1' // check wear play services version and match
-    //noinspection GradleCompatible
-    implementation 'com.android.support:wear:26.1.0'
-    //noinspection GradleCompatible
-    implementation 'com.android.support:support-compat:26.1.0'
-    //noinspection GradleCompatible
-    implementation 'com.android.support:support-core-utils:26.1.0'
-    //noinspection GradleCompatible
-    implementation 'com.android.support:support-core-ui:26.1.0'
+
+    implementation 'com.android.support:wear:27.1.1'
+
+    implementation 'com.android.support:percent:27.1.1'
+    implementation 'com.android.support:support-v4:27.1.1'
+
+
+
+    implementation 'com.android.support:support-compat:27.1.1'
+
+    implementation 'com.android.support:support-core-utils:27.1.1'
+
+    implementation 'com.android.support:support-core-ui:27.1.1'
 
 }

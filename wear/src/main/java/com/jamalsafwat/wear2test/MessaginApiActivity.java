@@ -14,6 +14,7 @@ import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaRecorder;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -29,10 +30,13 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.android.gms.wearable.CapabilityApi;
 import com.google.android.gms.wearable.CapabilityClient;
 import com.google.android.gms.wearable.CapabilityInfo;
@@ -56,14 +60,11 @@ import java.util.List;
 import java.util.Set;
 
 public class MessaginApiActivity extends Activity implements
-        GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener,
         CapabilityClient.OnCapabilityChangedListener{
 
     private static final int SPEECH_REQUEST_CODE = 888;
     private static final int MULTIPLE_PERMISSIONS = 600;
     private TextView mTextView;
-    private GoogleApiClient mGoogleApiClient;
     private String transcriptionNodeId = null;
 
     private final String TAG = MessaginApiActivity.class.getSimpleName();
@@ -136,6 +137,8 @@ public class MessaginApiActivity extends Activity implements
             @Override
             public void onClick(View v) {
 
+                recBtn.setEnabled(false);
+                recBtn.setVisibility(View.INVISIBLE);
                 //displaySpeechRecognizer();
                 askForPermission();
 //                requestTranscriptionString(null);
@@ -146,6 +149,8 @@ public class MessaginApiActivity extends Activity implements
             @Override
             public void onClick(View v) {
 
+                recBtn.setEnabled(true);
+                recBtn.setVisibility(View.VISIBLE);
                 sendDataImg.setImageDrawable(null);
                 stopRecording();
 
@@ -156,50 +161,34 @@ public class MessaginApiActivity extends Activity implements
             }
         });
 
-
-
-          /*
-            To call the Data Layer API, create an instance of GoogleApiClient,
-            the main entry point for any of the Google Play services APIs.
-         */
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addApi(Wearable.API) // Request access only to the Wearable API
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .build();
-
-
     }
 
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
+    private void connected (){
+        Task<Void> checkCap = Wearable.getCapabilityClient(this)
+                .addListener(this, Uri.parse("wear://"), CapabilityClient.FILTER_REACHABLE);
 
-        setupVoiceTranscription();
+        checkCap.addOnCompleteListener(new OnCompleteListener<Void>() {
+            @Override
+            public void onComplete(@NonNull Task<Void> task) {
 
-    }
+                if(task.isSuccessful()){
+                    Log.e("check success",  ">>>>>>");
+                    setupVoiceTranscription();
 
-    @Override
-    public void onConnectionSuspended(int i) {
-
-    }
-
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
+                }else {
+                    Log.e("check fail",  "<<<<");
+                }
+            }
+        });
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-
-        if ((mGoogleApiClient != null) && mGoogleApiClient.isConnected()) {
-
             Log.e(TAG, "onPause");
 
-            Wearable.CapabilityApi.removeCapabilityListener( mGoogleApiClient, this, VOICE_TRANSCRIPTION_CAPABILITY_NAME);
+        Wearable.getCapabilityClient(this).removeListener(this);
 
-            mGoogleApiClient.disconnect();
-        }
     }
 
     @Override
@@ -210,19 +199,31 @@ public class MessaginApiActivity extends Activity implements
     @Override
     protected void onResume() {
         super.onResume();
+        connected();
 
-        if (mGoogleApiClient != null) {
-            Log.e(TAG, "onResume");
-            mGoogleApiClient.connect();
-        }
     }
 
     private void setupVoiceTranscription() {
 
-       new LongOperation().execute();
+        Task<CapabilityInfo> pendingResult =   Wearable.getCapabilityClient(this)
+                .getCapability(VOICE_TRANSCRIPTION_CAPABILITY_NAME,
+                        CapabilityClient.FILTER_REACHABLE);
 
-        // Set up listeners for capability changes for the voice contract key.
-        Wearable.CapabilityApi.addCapabilityListener( mGoogleApiClient, this, VOICE_TRANSCRIPTION_CAPABILITY_NAME);
+
+        pendingResult.addOnCompleteListener(new OnCompleteListener<CapabilityInfo>() {
+            @Override
+            public void onComplete(@NonNull Task<CapabilityInfo> task) {
+
+                if(task.isSuccessful()){
+
+                    CapabilityInfo capabilityInfo = task.getResult();
+                    updateTranscriptionCapability(capabilityInfo);
+
+                }else{
+                    Log.d(TAG, "Failed CapabilityApi: " + task.getResult());
+                }
+            }
+        });
 
     }
 
@@ -240,8 +241,6 @@ public class MessaginApiActivity extends Activity implements
         transcriptionNodeId = pickBestNodeId(connectedNodes);
 
         Log.e(TAG + " transcriptionNodeId", transcriptionNodeId  + "");
-
-
     }
 
     private String pickBestNodeId(Set<Node> nodes) {
@@ -257,75 +256,33 @@ public class MessaginApiActivity extends Activity implements
     }
 
 
-
-    private class LongOperation extends AsyncTask<String, Void, CapabilityApi.GetCapabilityResult> {
-
-        @Override
-        protected CapabilityApi.GetCapabilityResult doInBackground(String... params) {
-
-            CapabilityApi.GetCapabilityResult result = null;
-            try {
-                 result = Wearable.CapabilityApi.getCapability(mGoogleApiClient, VOICE_TRANSCRIPTION_CAPABILITY_NAME, CapabilityApi.FILTER_REACHABLE).await();
-
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return result;
-        }
-
-        @Override
-        protected void onPostExecute(CapabilityApi.GetCapabilityResult result) {
-
-            Log.e(TAG + " result-Capability", result.getCapability().getName());
-
-            updateTranscriptionCapability(result.getCapability());
-        }
-
-        @Override
-        protected void onPreExecute() {}
-
-        @Override
-        protected void onProgressUpdate(Void... values) {}
-    }
-
     private void requestTranscriptionString(byte[] voiceData) {
 
         if (transcriptionNodeId != null) {
 
-            Wearable.MessageApi.sendMessage(mGoogleApiClient, transcriptionNodeId, VOICE_TRANSCRIPTION_MESSAGE_PATH, voiceData)
-                    .setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
-                        @Override
-                        public void onResult(@NonNull MessageApi.SendMessageResult sendMessageResult) {
-                            if (!sendMessageResult.getStatus().isSuccess()) {
-                                // Failed to send message
-                                Log.e(TAG + " Failed to send", sendMessageResult.getStatus().getStatusMessage());
-                            }else{
-                                Log.e(TAG + " Sent", sendMessageResult.getStatus().getStatusMessage());
-                            }
-                        }
-                    });
+            Task<Integer> sndMsg = Wearable.getMessageClient(this).sendMessage(transcriptionNodeId,
+                    VOICE_TRANSCRIPTION_MESSAGE_PATH, voiceData);
+
+            sndMsg.addOnCompleteListener(new OnCompleteListener<Integer>() {
+                @Override
+                public void onComplete(@NonNull Task<Integer> task) {
+
+                    if(task.isSuccessful()){
+                        Log.e(TAG + " Sent", "isSuccessful" + task.getResult().toString());
+                        Toast.makeText(MessaginApiActivity.this, "File sent to phone for playback", Toast.LENGTH_LONG).show();
+                    }else{
+
+                        Toast.makeText(MessaginApiActivity.this, "Failed to send file to phone", Toast.LENGTH_LONG).show();
+                        Log.e(TAG + " Failed to send", "Failed to send");
+                    }
+
+                }
+            });
         } else {
             // Unable to retrieve node with transcription capability
             Log.e(TAG + " No node", "Unable to retrieve node");
         }
     }
-
-    /**
-     * this needs to run in background thread or will throw exception on main thread
-     * @return
-     */
-    private Collection<String> broadcastToAllNodes(){
-
-            HashSet<String> results = new HashSet<String>();
-            NodeApi.GetConnectedNodesResult nodes = Wearable.NodeApi.getConnectedNodes(mGoogleApiClient).await();
-            for (Node node : nodes.getNodes()) {
-                results.add(node.getId());
-            }
-            return results;
-
-    }
-
 
 
     protected boolean hasMicrophone() {
@@ -360,7 +317,7 @@ public class MessaginApiActivity extends Activity implements
     /**
      * Starts recording from the MIC.
      */
-    public void startRecording() {
+    private void startRecording() {
 
 
         mRecordingAsyncTask = new AsyncTask<Void, Void, Void>() {
@@ -369,6 +326,13 @@ public class MessaginApiActivity extends Activity implements
 
             @Override
             protected void onPreExecute() {
+
+                outputDir = getCacheDir(); // context being the Activity pointer
+                try {
+                    outputFile = File.createTempFile("demo", "mp4", outputDir);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
 
             }
 
@@ -516,7 +480,7 @@ public class MessaginApiActivity extends Activity implements
          * check if permission is permitted, otherwise add to list of requested permissions permission
          */
         if (!addPermission(permissionsList, Manifest.permission.RECORD_AUDIO)){
-            permissionsNeeded.add("RECORD_AUDIO");
+            permissionsNeeded.add(Manifest.permission.RECORD_AUDIO);
         }
 
         if (permissionsList.size() > 0) {
@@ -690,8 +654,6 @@ public class MessaginApiActivity extends Activity implements
      * Starts playback of the recorded audio file.
      */
     public void startPlay() {
-
-
 
         if (!new File(getFilesDir(), outputFile.getName()).exists()) {
             // there is no recording to play

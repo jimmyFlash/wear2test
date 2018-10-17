@@ -38,14 +38,16 @@ public class SecondActivity extends WearableActivity {
     private static final int SPEECH_REQUEST_CODE = 0;
     private WearableRecyclerView mWearableRecyclerView;
 
-    private final int MESSAGE_CONNECTIVITY_TIMEOUT = 1;
+    private static final int MESSAGE_CONNECTIVITY_TIMEOUT = 1;
     private final long NETWORK_CONNECTIVITY_TIMEOUT_MS = 10000;
 
     private final int MIN_BANDWIDTH_KBPS = 320;
 
 
-    private Handler mHandler = new Handler() {
-        @Override
+    private Handler mHandler = new MyVeryOwnHandler();
+
+
+    private static class MyVeryOwnHandler extends Handler {
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case MESSAGE_CONNECTIVITY_TIMEOUT:
@@ -54,8 +56,7 @@ public class SecondActivity extends WearableActivity {
                     break;
             }
         }
-    };
-
+    }
 
     IconData[] data = new IconData[] {
             new IconData("Confirmation Timer", android.R.drawable.ic_dialog_alert),
@@ -72,8 +73,8 @@ public class SecondActivity extends WearableActivity {
             new IconData("Speak ", android.R.drawable.ic_media_next)
     };
     
-    private ConnectivityManager mConnectivityManager;
-    private ConnectivityManager.NetworkCallback mNetworkCallback;
+    private static ConnectivityManager mConnectivityManager;
+    private static ConnectivityManager.NetworkCallback mNetworkCallback;
     private ConnectivityManager connMgr;
 
     @Override
@@ -335,7 +336,7 @@ public class SecondActivity extends WearableActivity {
     }
 
     // to release network service to save battery and resources
-    private void releaseNetwork(){
+    private static void releaseNetwork(){
         mConnectivityManager.bindProcessToNetwork(null);
         mConnectivityManager.unregisterNetworkCallback(mNetworkCallback);
     }

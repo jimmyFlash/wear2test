@@ -43,7 +43,8 @@
                 android:textSize="14sp"
                 android:gravity="center_horizontal"
                 android:background="@android:color/transparent"
-                android:text="kugkugiugiugiugiugiu"/>
+                tools:text="kugkugiugiugiugiugiu"
+                />
 
         </RelativeLayout>
 

@@ -6,12 +6,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.ResultReceiver;
-import android.speech.RecognizerIntent;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.wearable.activity.WearableActivity;
-import android.support.wearable.notifications.BridgingConfig;
-import android.support.wearable.notifications.BridgingManager;
 import android.support.wearable.view.ConfirmationOverlay;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
@@ -19,11 +15,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.PendingResult;
-import com.google.android.gms.common.api.ResultCallback;
-import com.google.android.gms.wearable.CapabilityApi;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.android.gms.wearable.CapabilityClient;
 import com.google.android.gms.wearable.CapabilityInfo;
 import com.google.android.gms.wearable.Node;
@@ -31,11 +24,9 @@ import com.google.android.gms.wearable.Wearable;
 import com.google.android.wearable.intent.RemoteIntent;
 import com.google.android.wearable.playstore.PlayStoreAvailability;
 
-import java.util.List;
 import java.util.Set;
 
-public class MainActivity extends WearableActivity implements GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener,
+public class MainActivity extends WearableActivity implements
         CapabilityClient.OnCapabilityChangedListener
 {
 
@@ -98,7 +89,6 @@ public class MainActivity extends WearableActivity implements GoogleApiClient.Co
 
     private Node mAndroidPhoneNodeWithApp;
 
-    private GoogleApiClient mGoogleApiClient;
     private Button mLaunchActivityButton;
 
 
@@ -143,17 +133,7 @@ public class MainActivity extends WearableActivity implements GoogleApiClient.Co
                 finish();
             }
         });
-
-        /*
-        To call the Data Layer API, create an instance of GoogleApiClient,
-        the main entry point for any of the Google Play services APIs.
-         */
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addApi(Wearable.API) // Request access only to the Wearable API
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .build();
-    }
+}
 
 
     /**
@@ -192,47 +172,29 @@ public class MainActivity extends WearableActivity implements GoogleApiClient.Co
         Log.d(TAG, "onPause()");
         super.onPause();
 
-        if ((mGoogleApiClient != null) && mGoogleApiClient.isConnected()) {
-            Wearable.CapabilityApi.removeCapabilityListener(
-                    mGoogleApiClient,
-                    this,
-                    CAPABILITY_PHONE_APP);
+        Wearable.getCapabilityClient(this)
+                .removeListener(this, CAPABILITY_PHONE_APP);
 
-            mGoogleApiClient.disconnect();
-        }
     }
 
     @Override
     protected void onResume() {
         Log.d(TAG, "onResume()");
         super.onResume();
-        if (mGoogleApiClient != null) {
-            mGoogleApiClient.connect();
-        }
+        connected();
+
     }
 
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
-        Log.d(TAG, "onConnected(), Now you can use the Data Layer API");
 
-        // Set up listeners for capability changes (install/uninstall of remote app).
-        Wearable.CapabilityApi.addCapabilityListener(
-                mGoogleApiClient,
-                this,
-                CAPABILITY_PHONE_APP);
+    private void connected (){
+        Wearable.getCapabilityClient(this)
+                .addListener(this, Uri.parse("phone://"), CapabilityClient.FILTER_REACHABLE);
 
         checkIfPhoneHasApp();
+
+
     }
 
-    @Override
-    public void onConnectionSuspended(int i) {
-        Log.d(TAG, "onConnectionSuspended(): connection to location client suspended: " + i);
-    }
-
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-        Log.e(TAG, "onConnectionFailed(): " + connectionResult);
-    }
 
     /*
      * Updates UI when capabilities change (install/uninstall phone app).
@@ -242,33 +204,31 @@ public class MainActivity extends WearableActivity implements GoogleApiClient.Co
 
         mAndroidPhoneNodeWithApp = pickBestNodeId(capabilityInfo.getNodes());
         verifyNodeAndUpdateUI();
+
     }
 
     private void checkIfPhoneHasApp() {
         Log.d(TAG, "checkIfPhoneHasApp()");
 
-        PendingResult<CapabilityApi.GetCapabilityResult> pendingResult =
-                Wearable.CapabilityApi.getCapability(
-                        mGoogleApiClient,
-                        CAPABILITY_PHONE_APP,
-                        CapabilityApi.FILTER_ALL);
+       Task<CapabilityInfo> pendingResult =   Wearable.getCapabilityClient(this)
+               .getCapability(CAPABILITY_PHONE_APP,
+                        CapabilityClient.FILTER_REACHABLE);
 
-        pendingResult.setResultCallback(new ResultCallback<CapabilityApi.GetCapabilityResult>() {
+       pendingResult.addOnCompleteListener(new OnCompleteListener<CapabilityInfo>() {
+           @Override
+           public void onComplete(@NonNull Task<CapabilityInfo> task) {
 
-            @Override
-            public void onResult(@NonNull CapabilityApi.GetCapabilityResult getCapabilityResult) {
-                Log.d(TAG, "onResult(): " + getCapabilityResult);
+               if(task.isSuccessful()){
 
-                if (getCapabilityResult.getStatus().isSuccess()) {
-                    CapabilityInfo capabilityInfo = getCapabilityResult.getCapability();
-                    mAndroidPhoneNodeWithApp = pickBestNodeId(capabilityInfo.getNodes());
-                    verifyNodeAndUpdateUI();
+                   CapabilityInfo capabilityInfo = task.getResult();
+                   mAndroidPhoneNodeWithApp = pickBestNodeId(capabilityInfo.getNodes());
+                   verifyNodeAndUpdateUI();
+               }else{
+                   Log.d(TAG, "Failed CapabilityApi: " + task.getResult());
+               }
+           }
+       });
 
-                } else {
-                    Log.d(TAG, "Failed CapabilityApi: " + getCapabilityResult.getStatus());
-                }
-            }
-        });
     }
 
     private void verifyNodeAndUpdateUI() {
